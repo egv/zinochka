@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import List
+from typing import List, Optional
 from agents import Agent, Runner
 
 # Configure logging
@@ -13,7 +13,7 @@ class TaskExtractor:
     Extracts tasks from transcripts using OpenAI agents.
     """
     
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: Optional[str] = None):
         """
         Initialize the task extractor.
         

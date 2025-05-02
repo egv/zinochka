@@ -1,5 +1,6 @@
 import logging
-from typing import List, Optional
+from typing import Any, List, Optional, cast
+
 from celery import chain
 
 from zinochka.services.activation import contains_activation_phrase
@@ -23,7 +24,7 @@ def process_transcript(transcript: str) -> Optional[str]:
 
 
 @celery_app.task
-def process_with_orchestration_agent(transcript: str) -> List[str]:
+async def process_with_orchestration_agent(transcript: str) -> List[str]:
     """
     Process the transcript with the orchestration agent.
     
@@ -45,10 +46,10 @@ def process_with_orchestration_agent(transcript: str) -> List[str]:
     # Create and use the orchestration agent
     try:
         orchestration_agent = OrchestrationAgent()
-        result = orchestration_agent.process_transcript(transcript)
+        result = await orchestration_agent.process_transcript(transcript)
         
         if result.get("success", False):
-            return result.get("created_tasks", [])
+            return cast(List[str], result.get("created_tasks", []))
         return []
     except Exception as e:
         celery_logger = logging.getLogger(__name__)
@@ -67,7 +68,7 @@ def process_webhook_data(transcript: str) -> None:
     # Create a task chain to process the transcript
     # 1. Check if there's an activation phrase
     # 2. If so, process with orchestration agent
-    result = chain(
+    chain(
         process_transcript.s(transcript),
         process_with_orchestration_agent.s()
     ).apply_async()

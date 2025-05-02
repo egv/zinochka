@@ -1,7 +1,9 @@
-import os
 import logging
-from typing import List, Dict, Any
+import os
+from typing import Any, Dict, Optional
+
 from agents import Agent, Runner
+from agents.mcp import MCPServerSse
 
 from zinochka.services.task_extractor import TaskExtractor
 
@@ -18,7 +20,7 @@ class OrchestrationAgent:
     an activation phrase ("зиночка" or "zinochka").
     """
     
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: Optional[str] = None):
         """
         Initialize the orchestration agent.
         
@@ -35,15 +37,17 @@ class OrchestrationAgent:
         # Convert the task extractor's agent to a tool
         task_extraction_tool = self.task_extractor.agent.as_tool(
             tool_name="extract_tasks",
-            tool_description="Extract tasks from a transcript text. Returns a list of task descriptions."
+            tool_description="Extract tasks from a transcript text. Returns a list of descriptions."
         )
         
-        # Create the orchestration agent with stdio MCP for TickTick
-        # Import needed for the stdio MCP
-        from agents import StdioMCPServer
-
-        # This will be configured later with the ticktick-mcp server
-        ticktick_mcp = StdioMCPServer(["ticktick-mcp"])
+        # Create the orchestration agent with SSE MCP for TickTick
+        # Using SSE MCP to connect to the TickTick MCP server
+        ticktick_mcp = MCPServerSse(
+            name="TickTick MCP",
+            params={
+                "url": "http://ticktick-mcp:3434/sse"
+            }
+        )
         
         self.agent = Agent(
             name="Task Orchestrator",
@@ -65,12 +69,12 @@ class OrchestrationAgent:
         # Initialize the runner
         self.runner = Runner()  # Runner doesn't take api_key in constructor
     
-    def process_transcript(self, transcript: str) -> Dict[str, Any]:
+    async def process_transcript(self, transcript: str) -> Dict[str, Any]:
         """
         Process a transcript to extract and create tasks.
         
         Args:
-            transcript: The transcript text to process (already verified to contain activation phrase)
+            transcript: The transcript text to process (with activation phrase)
             
         Returns:
             Dictionary with processing results
@@ -90,7 +94,8 @@ class OrchestrationAgent:
             Return a list of created task IDs.
             """
             
-            result = self.runner.run(self.agent, prompt)
+            # Run the agent with async support
+            result = await self.runner.run(self.agent, prompt)
             
             # Log the result
             logger.info(f"Orchestration agent result: {result}")
