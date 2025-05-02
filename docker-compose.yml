@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # FastAPI application
+  api:
+    build: .
+    container_name: zinochka-api
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - rabbitmq
+    command: uvicorn zinochka.api.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./zinochka:/app/zinochka
+
+  # Celery worker
+  worker:
+    build: .
+    container_name: zinochka-worker
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - rabbitmq
+    command: celery -A zinochka.services.celery_app worker --loglevel=info
+    volumes:
+      - ./zinochka:/app/zinochka
+
+  # RabbitMQ message broker for Celery
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: zinochka-rabbitmq
+    ports:
+      - "5672:5672"  # AMQP protocol
+      - "15672:15672"  # Management interface
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  rabbitmq_data:
