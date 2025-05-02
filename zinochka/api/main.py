@@ -1,5 +1,6 @@
-from fastapi import FastAPI, HTTPException
 import logging
+
+from fastapi import FastAPI, HTTPException
 
 from zinochka.api.models import WebhookPayload, WebhookResponse
 from zinochka.services.tasks import process_webhook_data
@@ -16,13 +17,13 @@ app = FastAPI(title="Zinochka", description="Personal AI assistant webhook API")
 
 
 @app.get("/")
-async def root():
+async def root() -> dict[str, str]:
     """Health check endpoint."""
     return {"status": "ok"}
 
 
 @app.post("/webhook", response_model=WebhookResponse)
-async def webhook(payload: WebhookPayload):
+async def webhook(payload: WebhookPayload) -> WebhookResponse:
     """
     Webhook endpoint for receiving transcripts from Zapier/Plaud.
     
@@ -38,8 +39,12 @@ async def webhook(payload: WebhookPayload):
         A simple success response
     """
     try:
-        # Log receipt of the webhook
-        logger.info("Received webhook with transcript")
+        # Log receipt of the webhook with full JSON payload
+        payload_dict = payload.model_dump()
+        logger.info(f"Received webhook payload: {payload_dict}")
+        
+        # Also print the full payload to console for debugging
+        print(f"\n===== WEBHOOK PAYLOAD =====\n{payload_dict}\n===========================\n")
         
         # Submit the transcript for processing via Celery
         process_webhook_data.delay(payload.transcript)
@@ -50,4 +55,4 @@ async def webhook(payload: WebhookPayload):
     except Exception as e:
         # Log the error
         logger.error(f"Error processing webhook: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
