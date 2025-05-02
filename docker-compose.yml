@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   web:
     external: false
@@ -35,9 +33,10 @@ services:
     env_file:
       - ./.env
     depends_on:
+      - traefik
       - rabbitmq
       - ticktick-mcp
-    command: uvicorn zinochka.api.main:app --host 0.0.0.0 --port 8000
+    command: uv run uvicorn zinochka.api.main:app --host 0.0.0.0 --port 8000
     volumes:
       - ./zinochka:/app/zinochka
     labels:
@@ -60,7 +59,7 @@ services:
     depends_on:
       - rabbitmq
       - ticktick-mcp
-    command: celery -A zinochka.services.celery_app worker --loglevel=info
+    command: uv run celery -A zinochka.services.celery_app worker --loglevel=info
     volumes:
       - ./zinochka:/app/zinochka
     networks:
@@ -88,8 +87,8 @@ services:
     # No need to expose port, internal communication only
     # ports:
     #   - "3434:3434"
-    volumes:
-      - ./.env:/app/.env
+    env_file:
+      - ./.env
     restart: unless-stopped
     networks:
       - internal

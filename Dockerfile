@@ -8,7 +8,7 @@ COPY pyproject.toml .
 COPY README.md .
 
 # Create a virtual environment and install dependencies
-RUN uv sync --system 
+RUN uv sync 
 
 # Copy the application code
 COPY zinochka ./zinochka
