@@ -1,56 +1,99 @@
 version: '3.8'
 
+networks:
+  web:
+    external: false
+  internal:
+    external: false
+
 services:
+  # Traefik reverse proxy
+  traefik:
+    image: traefik:v2.9
+    container_name: zinochka-traefik
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/config/traefik.yml:/etc/traefik/traefik.yml:ro
+      - traefik-certificates:/letsencrypt
+      - ./.env:/app/.env
+    environment:
+      - EMAIL=${EMAIL}
+    restart: unless-stopped
+    networks:
+      - web
+
   # FastAPI application
   api:
     build: .
     container_name: zinochka-api
-    ports:
-      - "8000:8000"
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    # Remove direct port exposure as Traefik will handle this
+    # ports:
+    #   - "8000:8000"
+    env_file:
+      - ./.env
     depends_on:
       - rabbitmq
       - ticktick-mcp
     command: uvicorn zinochka.api.main:app --host 0.0.0.0 --port 8000
     volumes:
       - ./zinochka:/app/zinochka
+    labels:
+      - "traefik.enable=true"
+      # Only expose the webhook endpoint
+      - "traefik.http.routers.webhook.rule=Host(`${WEBHOOK_DOMAIN}`) && PathPrefix(`/webhook`)"
+      - "traefik.http.routers.webhook.entrypoints=websecure"
+      - "traefik.http.routers.webhook.tls.certresolver=letsencrypt"
+      - "traefik.http.services.webhook.loadbalancer.server.port=8000"
+    networks:
+      - web
+      - internal
 
   # Celery worker
   worker:
     build: .
     container_name: zinochka-worker
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    env_file:
+      - ./.env
     depends_on:
       - rabbitmq
       - ticktick-mcp
     command: celery -A zinochka.services.celery_app worker --loglevel=info
     volumes:
       - ./zinochka:/app/zinochka
+    networks:
+      - internal
 
   # RabbitMQ message broker for Celery
   rabbitmq:
     image: rabbitmq:3-management
     container_name: zinochka-rabbitmq
+    # Only expose management interface to host, not to the internet
     ports:
-      - "5672:5672"  # AMQP protocol
-      - "15672:15672"  # Management interface
+      - "127.0.0.1:15672:15672"  # Management interface
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - internal
       
   # TickTick MCP Server
   ticktick-mcp:
     image: ghcr.io/egv/ticktick-mcp:latest
     container_name: zinochka-ticktick-mcp
-    ports:
-      - "3434:3434"
+    # No need to expose port, internal communication only
+    # ports:
+    #   - "3434:3434"
     volumes:
       - ./.env:/app/.env
     restart: unless-stopped
+    networks:
+      - internal
 
 volumes:
   rabbitmq_data:
+  traefik-certificates:

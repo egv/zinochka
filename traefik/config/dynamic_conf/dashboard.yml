@@ -1,0 +1,19 @@
+http:
+  routers:
+    dashboard:
+      rule: "Host(`traefik.yourdomain.com`)"  # Replace with your domain for the Traefik dashboard
+      service: api@internal
+      entryPoints:
+        - websecure
+      middlewares:
+        - auth
+      tls:
+        certResolver: letsencrypt
+
+  middlewares:
+    auth:
+      basicAuth:
+        users:
+          # Generate with: htpasswd -nb admin secure_password
+          # Replace this with your generated credentials
+          - "admin:$apr1$ruca84Hq$mbjdMZBAG.KWn7vfN/SNK/"

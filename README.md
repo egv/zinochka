@@ -10,16 +10,24 @@ Zinochka listens for webhook calls from Zapier with transcripts from Plaud notes
 
 ## Setup with Docker
 
-1. Set your OpenAI API key in the .env file:
+1. Set your configuration in the .env file:
 ```bash
 cp .env.example .env
-# Edit .env file with your API key
+# Edit .env file with your API keys and domain configuration
 ```
 
 2. Start the application using Docker Compose:
 ```bash
 ./start.sh
 ```
+
+### HTTPS Support
+
+The application includes Traefik as a reverse proxy to provide HTTPS for the webhook endpoint:
+
+- Configure your domain in the .env file (WEBHOOK_DOMAIN variable)
+- Provide your email for Let's Encrypt certificate notifications (EMAIL variable)
+- Traefik will automatically handle SSL certificate generation and renewal
 
 ## Manual Setup
 
