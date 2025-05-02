@@ -11,6 +11,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - rabbitmq
+      - ticktick-mcp
     command: uvicorn zinochka.api.main:app --host 0.0.0.0 --port 8000
     volumes:
       - ./zinochka:/app/zinochka
@@ -23,6 +24,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - rabbitmq
+      - ticktick-mcp
     command: celery -A zinochka.services.celery_app worker --loglevel=info
     volumes:
       - ./zinochka:/app/zinochka
@@ -39,6 +41,16 @@ services:
       - RABBITMQ_DEFAULT_PASS=guest
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+      
+  # TickTick MCP Server
+  ticktick-mcp:
+    image: ghcr.io/egv/ticktick-mcp:latest
+    container_name: zinochka-ticktick-mcp
+    ports:
+      - "3434:3434"
+    volumes:
+      - ./.env:/app/.env
+    restart: unless-stopped
 
 volumes:
   rabbitmq_data:
