@@ -58,3 +58,4 @@ logs/
 
 # Docker
 .docker.env
+**/.claude/settings.local.json
