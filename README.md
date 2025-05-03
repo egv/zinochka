@@ -27,7 +27,23 @@ The application includes Traefik as a reverse proxy to provide HTTPS for the web
 
 - Configure your domain in the .env file (WEBHOOK_DOMAIN variable)
 - Provide your email for Let's Encrypt certificate notifications (EMAIL variable)
-- Traefik will automatically handle SSL certificate generation and renewal
+- Traefik will automatically handle SSL certificate generation and renewal using Let's Encrypt
+
+#### SSL Certificate Troubleshooting
+
+If you encounter issues with SSL certificates:
+
+1. To reset Let's Encrypt certificates and start fresh:
+   ```bash
+   ./start.sh --reset-certs
+   ```
+
+2. To verify certificates are being obtained correctly:
+   ```bash
+   docker compose logs -f traefik
+   ```
+
+3. Ensure port 80 and 443 are open and accessible from the internet for Let's Encrypt verification
 
 ## Manual Setup
 

@@ -44,6 +44,7 @@ services:
       # Only expose the webhook endpoint
       - "traefik.http.routers.webhook.rule=Host(`${WEBHOOK_DOMAIN}`) && PathPrefix(`/webhook`)"
       - "traefik.http.routers.webhook.entrypoints=websecure"
+      - "traefik.http.routers.webhook.tls=true"
       - "traefik.http.routers.webhook.tls.certresolver=letsencrypt"
       - "traefik.http.services.webhook.loadbalancer.server.port=8000"
     networks:
@@ -96,3 +97,4 @@ services:
 volumes:
   rabbitmq_data:
   traefik-certificates:
+    driver: local
